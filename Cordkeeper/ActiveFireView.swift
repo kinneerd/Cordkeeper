@@ -287,6 +287,11 @@ struct LogButton: View {
                     pressStartTime = nil
                 }
         )
+        .onDisappear {
+            // Clean up timer to prevent memory leaks
+            timer?.invalidate()
+            timer = nil
+        }
     }
 }
 

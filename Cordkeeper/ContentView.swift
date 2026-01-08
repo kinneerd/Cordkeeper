@@ -4,11 +4,22 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var settings: [AppSettings]
-    
+
+    @State private var loadedSettings: AppSettings?
+
     var currentSettings: AppSettings {
+        // Return cached if already loaded
+        if let loaded = loadedSettings {
+            return loaded
+        }
+
+        // Check for existing settings
         if let existing = settings.first {
+            loadedSettings = existing
             return existing
         }
+
+        // Create new settings only once
         let newSettings = AppSettings()
         modelContext.insert(newSettings)
 
@@ -18,9 +29,10 @@ struct ContentView: View {
             print("Error saving initial settings: \(error)")
         }
 
+        loadedSettings = newSettings
         return newSettings
     }
-    
+
     var body: some View {
         Group {
             if !currentSettings.hasCompletedOnboarding {

@@ -133,13 +133,25 @@ final class AppSettings {
     var mediumRatio: Double
     var largeRatio: Double
     var seasonGoal: Double?
-    var seasonStartMonth: Int // 1-12
-    var seasonStartDay: Int
+    var seasonStartMonth: Int { // 1-12
+        didSet {
+            // Invalidate cache when season start changes
+            cachedSeasonStartDate = nil
+            cachedSeasonStartYear = nil
+        }
+    }
+    var seasonStartDay: Int {
+        didSet {
+            // Invalidate cache when season start changes
+            cachedSeasonStartDate = nil
+            cachedSeasonStartYear = nil
+        }
+    }
     var hasCompletedOnboarding: Bool
 
-    // Cache for expensive date calculation
-    private var cachedSeasonStartDate: Date?
-    private var cachedSeasonStartYear: Int?
+    // Cache for expensive date calculation - not persisted
+    @Transient private var cachedSeasonStartDate: Date?
+    @Transient private var cachedSeasonStartYear: Int?
 
     init() {
         self.id = UUID()
@@ -167,14 +179,18 @@ final class AppSettings {
             return cached
         }
 
+        // Validate and adjust day to be valid for the month
+        let validatedDay = validDayForMonth(month: seasonStartMonth, day: seasonStartDay)
+
         // Create this year's season start date
         var thisYearComponents = DateComponents()
         thisYearComponents.year = currentYear
         thisYearComponents.month = seasonStartMonth
-        thisYearComponents.day = seasonStartDay
+        thisYearComponents.day = validatedDay
 
         guard let thisYearSeasonStart = calendar.date(from: thisYearComponents) else {
-            return now
+            // Fallback to Jan 1 of current year if date creation fails
+            return calendar.date(from: DateComponents(year: currentYear, month: 1, day: 1)) ?? now
         }
 
         // If we're currently before this year's season start, use last year's
@@ -183,7 +199,7 @@ final class AppSettings {
             var lastYearComponents = DateComponents()
             lastYearComponents.year = currentYear - 1
             lastYearComponents.month = seasonStartMonth
-            lastYearComponents.day = seasonStartDay
+            lastYearComponents.day = validatedDay
             result = calendar.date(from: lastYearComponents) ?? thisYearSeasonStart
         } else {
             result = thisYearSeasonStart
@@ -195,6 +211,24 @@ final class AppSettings {
 
         return result
     }
+
+    // Helper function to validate day is valid for given month
+    private func validDayForMonth(month: Int, day: Int) -> Int {
+        let calendar = Calendar.current
+        // Create a date with the month to check max days
+        var components = DateComponents()
+        components.year = 2024 // Non-leap year for Feb check
+        components.month = month
+        components.day = 1
+
+        guard let date = calendar.date(from: components),
+              let range = calendar.range(of: .day, in: .month, for: date) else {
+            return min(day, 28) // Fallback to 28 if validation fails
+        }
+
+        let maxDays = range.count
+        return min(day, maxDays)
+    }
     
     var seasonName: String {
         let calendar = Calendar.current
@@ -204,6 +238,7 @@ final class AppSettings {
     }
     
     func cordsBurned(from fires: [Fire]) -> Double {
+        guard unitsPerCord > 0 else { return 0 }
         let totalUnits = fires.reduce(0.0) { $0 + $1.totalUnits(settings: self) }
         return totalUnits / unitsPerCord
     }
