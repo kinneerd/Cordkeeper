@@ -191,6 +191,18 @@ struct ActiveFireView: View {
     }
 
     private func endFire() {
+        // If no logs were added, delete the fire instead of ending it
+        if fire.logs.isEmpty {
+            modelContext.delete(fire)
+            do {
+                try modelContext.save()
+            } catch {
+                print("Error deleting empty fire: \(error)")
+            }
+            dismiss()
+            return
+        }
+
         fire.endTime = Date()
 
         // Save before dismissing
