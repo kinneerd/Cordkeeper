@@ -6,27 +6,14 @@ struct HistoryView: View {
     @Bindable var settings: AppSettings
     
     @Query(sort: \Fire.startTime, order: .reverse) private var allFires: [Fire]
-    
+
     @State private var selectedFire: Fire?
-    
+    @State private var cachedGroupedFires: [(key: Date, month: String, fires: [Fire])] = []
+
     private var completedFires: [Fire] {
         allFires.filter { !$0.isActive }
     }
-    
-    private var groupedFires: [(key: Date, month: String, fires: [Fire])] {
-        let calendar = Calendar.current
 
-        // Group fires by month/year using Date as key
-        let grouped = Dictionary(grouping: completedFires) { fire -> Date in
-            let components = calendar.dateComponents([.year, .month], from: fire.startTime)
-            return calendar.date(from: components) ?? fire.startTime
-        }
-
-        // Sort by date (most recent first) and format month string
-        return grouped.map { (key: $0.key, month: $0.key.formatted(.dateTime.month(.wide).year()), fires: $0.value) }
-            .sorted { $0.key > $1.key }
-    }
-    
     var body: some View {
         NavigationStack {
             Group {
@@ -40,7 +27,29 @@ struct HistoryView: View {
             .sheet(item: $selectedFire) { fire in
                 FireDetailView(fire: fire, settings: settings)
             }
+            .onAppear {
+                updateGroupedFires()
+            }
+            .onChange(of: allFires) { _, _ in
+                updateGroupedFires()
+            }
         }
+    }
+
+    // MARK: - Helpers
+
+    private func updateGroupedFires() {
+        let calendar = Calendar.current
+
+        // Group fires by month/year using Date as key
+        let grouped = Dictionary(grouping: completedFires) { fire -> Date in
+            let components = calendar.dateComponents([.year, .month], from: fire.startTime)
+            return calendar.date(from: components) ?? fire.startTime
+        }
+
+        // Sort by date (most recent first) and format month string
+        cachedGroupedFires = grouped.map { (key: $0.key, month: $0.key.formatted(.dateTime.month(.wide).year()), fires: $0.value) }
+            .sorted { $0.key > $1.key }
     }
     
     // MARK: - Empty State
@@ -67,7 +76,7 @@ struct HistoryView: View {
     
     private var fireList: some View {
         List {
-            ForEach(groupedFires, id: \.key) { group in
+            ForEach(cachedGroupedFires, id: \.key) { group in
                 Section(group.month) {
                     ForEach(group.fires) { fire in
                         FireRowView(fire: fire, settings: settings)

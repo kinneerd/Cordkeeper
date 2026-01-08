@@ -271,7 +271,7 @@ struct DashboardView: View {
         cachedMediumCount = mediumTotal
         cachedLargeCount = largeTotal
         cachedTotalLogs = smallTotal + mediumTotal + largeTotal
-        cachedCordsBurned = totalUnits / settings.unitsPerCord
+        cachedCordsBurned = settings.unitsPerCord > 0 ? totalUnits / settings.unitsPerCord : 0
     }
 
     // MARK: - Actions

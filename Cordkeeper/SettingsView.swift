@@ -104,7 +104,7 @@ struct SettingsView: View {
                         }
                         
                         Menu {
-                            ForEach(1...28, id: \.self) { day in
+                            ForEach(1...31, id: \.self) { day in
                                 Button("\(day)") {
                                     settings.seasonStartDay = day
                                 }
