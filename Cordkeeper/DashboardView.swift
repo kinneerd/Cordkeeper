@@ -100,24 +100,36 @@ struct DashboardView: View {
                 VStack(spacing: 8) {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(.systemGray5))
-                                .frame(height: 16)
+                                .frame(height: 24)
 
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.orange.gradient)
-                                .frame(width: geometry.size.width * progress, height: 16)
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.orange, .red],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: geometry.size.width * progress, height: 24)
                         }
+                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                     }
-                    .frame(height: 16)
+                    .frame(height: 24)
                     .accessibilityLabel("Progress bar")
                     .accessibilityValue("\(Int(progress * 100)) percent")
 
                     HStack {
-                        Text("\(Int(progress * 100))% of \(String(format: "%.1f", goal)) cord goal")
+                        let remaining = goal - cachedCordsBurned
+                        Text("\(String(format: "%.2f", cachedCordsBurned)) burned • \(String(format: "%.2f", remaining)) remaining")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Spacer()
+                        Text("\(Int(progress * 100))%")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.orange)
                     }
                 }
             }
@@ -125,8 +137,9 @@ struct DashboardView: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
-    
+
     // MARK: - Stats Row
     
     private var statsRow: some View {
@@ -154,7 +167,7 @@ struct DashboardView: View {
                     .font(.headline)
                 Spacer()
             }
-            
+
             HStack(spacing: 16) {
                 SizeStatView(
                     size: .small,
@@ -178,6 +191,7 @@ struct DashboardView: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
     
     // MARK: - Fire Button
@@ -284,16 +298,16 @@ struct StatCard: View {
     let icon: String
     let value: String
     let label: String
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(.orange)
-            
+
             Text(value)
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-            
+
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -302,6 +316,7 @@ struct StatCard: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -309,24 +324,26 @@ struct SizeStatView: View {
     let size: LogSize
     let count: Int
     let settings: AppSettings
-    
+
     private var color: Color {
         switch size {
-        case .small: return .orange
-        case .medium: return .red
-        case .large: return .brown
+        case .small: return Color(red: 1.0, green: 0.6, blue: 0.0) // Brighter orange
+        case .medium: return Color(red: 0.9, green: 0.2, blue: 0.1) // Vibrant red
+        case .large: return Color(red: 0.4, green: 0.25, blue: 0.1) // Deep brown
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 6) {
             Text(size.abbreviation)
                 .font(.headline)
+                .fontWeight(.bold)
                 .foregroundStyle(color)
-            
+
             Text("\(count)")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-            
+                .foregroundStyle(color)
+
             Text("\(String(format: "%.2f", settings.ratio(for: size)))x")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
